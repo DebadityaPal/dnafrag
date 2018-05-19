@@ -1,4 +1,4 @@
-# dnafrag: oprtimized storage for DNA fragmentation pattern V-plots
+# dnafrag: optimized storage for DNA fragmentation V-plots
 This module provides a compressed datastore for DNA fragmentation pattern V-plots.
 The backend is [tiledb](https://www.tiledb.io), which is a compressed
 column-oriented embedded database with support for sparse coordinate-format matrices.
