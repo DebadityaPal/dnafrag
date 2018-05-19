@@ -9,12 +9,15 @@ For typical applications, these are shape `(~300-400, ~1000-10000)` with sparsit
 `~ 1e-5 - 1e-2`. The default compression/storage parameters are optimized
 for these ranges, and they likely need to be modified for substantially different use cases.
 
-## Dependencies
-Dependencies can be installed in the current Anaconda environment with
-`tools/install_dependencies.bash`.
 `dnafrag` relies on [`Py-TileDB`](https://github.com/TileDB-Inc/TileDB-Py), which
 currently supports Python 3.6 only. For this reason, `dnafrag` currently requires
 Python 3.6.
+
+## Installation (requires Python 3.6)
+First, install dependencies with `bash tools/install_dependencies.bash`
+
+
+Then, install `dnafrag` with `python setup.py install`, or `pip install .`
 
 ## Format
 The file format is simple: a directory of tiledb SparseArray files, with a single
