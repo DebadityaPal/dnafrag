@@ -11,9 +11,9 @@ for these ranges, and they likely need to be modified for substantially differen
 
 `dnafrag` relies on [`Py-TileDB`](https://github.com/TileDB-Inc/TileDB-Py), which
 currently supports Python 3.6 only. For this reason, `dnafrag` currently requires
-Python 3.6.
+Python >= 3.4.
 
-## Installation (requires Python 3.6)
+## Installation (requires Python >= 3.4)
 First, install dependencies with `bash tools/install_dependencies.bash`
 
 
