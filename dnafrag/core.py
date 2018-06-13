@@ -12,7 +12,7 @@ from scipy.sparse import coo_matrix, csc_matrix
 import tiledb
 
 from .array import DNAFragArray
-from .constants import (GENOME_DOMAIN_NAME, COUNTS_RANGE_NAME, INSERT_DOMAIN_NAME)
+from .constants import GENOME_DOMAIN_NAME, COUNTS_RANGE_NAME, INSERT_DOMAIN_NAME
 
 
 DEFAULT_GENOME_TILE_EXTENT = 50000
@@ -21,13 +21,12 @@ DEFAULT_COMPRESSOR = "lz4"
 VPLOT_MAX_VALUE = (2 ** 8) - 1  # we use unsigned 8-bit ints
 
 
-def write_fragbed(fragment_bed, output_dir, genome_file,
-                  max_fraglen, overwrite=False):
+def write_fragbed(fragment_bed, output_dir, genome_file, max_fraglen, overwrite=False):
     if os.path.exists(output_dir) and not overwrite:
-        raise FileExistsError('Output directory {} exists'.format(output_dir))
+        raise FileExistsError("Output directory {} exists".format(output_dir))
 
     chr2size = {}
-    with open(genome_file, 'r') as fp:
+    with open(genome_file, "r") as fp:
         for line in fp:
             chrom, size = line.split()
             chr2size[chrom] = int(size)
@@ -70,51 +69,61 @@ def write_fragbed(fragment_bed, output_dir, genome_file,
 
         # NB: We pass the *transpose* of the vplot
         # (so that the layout on disk is coordinate-major)
-        write_sparse_array(chr_dir, chr_len, max_fraglen,
-                           vplot.col, vplot.row, clipped_data)
+        write_sparse_array(
+            chr_dir, chr_len, max_fraglen, vplot.col, vplot.row, clipped_data
+        )
 
-    with open(os.path.join(output_dir, 'metadata.json'), 'w') as fp:
-        json.dump({'file_shapes': file_shapes,
-                   'type': 'vplot_tiledb',
-                   'source': fragment_bed}, fp)
+    with open(os.path.join(output_dir, "metadata.json"), "w") as fp:
+        json.dump(
+            {
+                "file_shapes": file_shapes,
+                "type": "vplot_tiledb",
+                "source": fragment_bed,
+            },
+            fp,
+        )
 
 
 def write_sparse_array(path, n, m, n_idxs, m_idxs, values):
     if os.path.exists(path):
-        raise FileExistsError('{} already exists'.format(path))
+        raise FileExistsError("{} already exists".format(path))
 
     if n_idxs.min() < 0 or n_idxs.max() >= n:
-        raise ValueError('row indexes must be in range [0, n - 1]')
+        raise ValueError("row indexes must be in range [0, n - 1]")
 
     if m_idxs.min() < 0 or m_idxs.max() >= m:
-        raise ValueError('column indexes must in in range [0, m - 1]')
+        raise ValueError("column indexes must in in range [0, m - 1]")
 
     ctx = tiledb.Ctx()
 
     n_tile_extent = min(DEFAULT_GENOME_TILE_EXTENT, n)
 
-    d1 = tiledb.Dim(ctx, GENOME_DOMAIN_NAME, domain=(0, n - 1),
-                    tile=n_tile_extent, dtype="uint32")
+    d1 = tiledb.Dim(
+        ctx, GENOME_DOMAIN_NAME, domain=(0, n - 1), tile=n_tile_extent, dtype="uint32"
+    )
     d2 = tiledb.Dim(ctx, INSERT_DOMAIN_NAME, domain=(0, m - 1), tile=m, dtype="uint32")
 
     domain = tiledb.Domain(ctx, d1, d2)
 
-    v = tiledb.Attr(ctx, "v", compressor=('lz4', -1), dtype="uint8")
+    v = tiledb.Attr(ctx, "v", compressor=("lz4", -1), dtype="uint8")
 
-    A = tiledb.SparseArray(ctx, path,
-                           domain=domain,
-                           attrs=(v,),
-                           capacity=1000,
-                           cell_order='row-major',
-                           tile_order='row-major')
+    A = tiledb.SparseArray(
+        ctx,
+        path,
+        domain=domain,
+        attrs=(v,),
+        capacity=1000,
+        cell_order="row-major",
+        tile_order="row-major",
+    )
 
     values = values.astype(np.uint8)
 
-    A[n_idxs, m_idxs] = {'v': values}
+    A[n_idxs, m_idxs] = {"v": values}
 
 
 def load(directory):
-    assert(os.path.isdir(directory))
+    assert os.path.isdir(directory)
     chrom_dirs = glob.glob(directory + "/*")
     chrom_dirs = filter(os.path.isdir, chrom_dirs)
     data = {os.path.basename(c): DNAFragArray(c) for c in chrom_dirs}
