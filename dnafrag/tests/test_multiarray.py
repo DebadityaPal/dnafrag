@@ -71,7 +71,8 @@ def test_write_vplot(tmpdir):
         fname = os.path.join(output_dir, TEST_CHROM_NAMES[chrom_idx])
         assert os.path.exists(fname)
         a = dnafrag.core.load_sparse_array(fname)
-        assert tuple(a.shape[::-1]) == tuple(chrom_sizes[TEST_CHROM_NAMES[chrom_idx]])
+        a = dnafrag.DNAFragMultiArray((a,))
+        assert tuple(a.shape) == tuple(chrom_sizes[TEST_CHROM_NAMES[chrom_idx]])
 
 
 def test_vplot_data(tmpdir):
@@ -82,6 +83,8 @@ def test_vplot_data(tmpdir):
 
     for chrom_name in ["chr0", "chr1", "chr2"]:
         a = dnafrag.core.load_sparse_array(os.path.join(output_dir, chrom_name))
+        a = dnafrag.DNAFragMultiArray((a,))
+
         (starts, stops) = bed_entries[chrom_name]
 
         for start, stop in zip(starts, stops):
@@ -90,7 +93,7 @@ def test_vplot_data(tmpdir):
             fraglen = stop - start - 1
             assert fraglen > 0 and fraglen <= MAX_INTERVAL_LEN
 
-            assert a[midpoint, fraglen]["v"] > 0
+            assert a[fraglen, midpoint]["v"] > 0
 
 
 def test_vplot_data_load_directory(tmpdir):
@@ -98,6 +101,7 @@ def test_vplot_data_load_directory(tmpdir):
     dnafrag.core.write_fragbed(FRAGBED_FILE, output_dir, GENOME_FILE, MAX_INTERVAL_LEN)
 
     genome_data = dnafrag.load(output_dir)
+    genome_data = {k: dnafrag.DNAFragMultiArray((v,)) for k, v in genome_data.items()}
 
     for chrom_name in ["chr0", "chr1", "chr2"]:
         a = dnafrag.core.load_sparse_array(os.path.join(output_dir, chrom_name))
@@ -110,6 +114,10 @@ def test_vplot_data_load_directory(tmpdir):
             assert fraglen > 0 and fraglen <= MAX_INTERVAL_LEN
 
             assert genome_data[chrom_name][fraglen, midpoint]["v"] > 0
+            assert (
+                a[midpoint, fraglen]["v"]
+                == genome_data[chrom_name][fraglen, midpoint]["v"]
+            )
 
 
 def test_exact_coords(tmpdir):
@@ -128,9 +136,22 @@ def test_exact_coords(tmpdir):
     dnafrag.core.write_fragbed(fragbed, output_dir, chrszs, MAX_INTERVAL_LEN)
 
     data = dnafrag.load(output_dir)["chr1"]
+    data = dnafrag.DNAFragMultiArray((data,))
 
     assert data[100, 150]["v"] == 2
     assert data[151, 576]["v"] == 1
+
+    data = dnafrag.load(output_dir)["chr1"]
+    data2 = dnafrag.DNAFragMultiArray((data, data))
+
+    assert data2[100, 150]["v"] == 4
+    assert data2[151, 576]["v"] == 2
+
+    data = dnafrag.load(output_dir)["chr1"]
+    data3 = dnafrag.DNAFragMultiArray((data, data, data))
+
+    assert data3[100, 150]["v"] == 6
+    assert data3[151, 576]["v"] == 3
 
 
 def test_exact_coords_array_access(tmpdir):
@@ -148,7 +169,8 @@ def test_exact_coords_array_access(tmpdir):
     output_dir = os.path.join(tmpdir, "output")
     dnafrag.core.write_fragbed(fragbed, output_dir, chrszs, MAX_INTERVAL_LEN)
 
-    data = dnafrag.load(output_dir)["chr1"]
+    data1 = dnafrag.load(output_dir)["chr1"]
+    data = dnafrag.DNAFragMultiArray((data1,))
 
     A = np.zeros((MAX_INTERVAL_LEN, 100), dtype=np.int32)
 
@@ -205,6 +227,65 @@ def test_exact_coords_array_access(tmpdir):
     data.fill_array(101, A, zero=True)
     assert A.sum() == 2
     assert A[100, 49] == 2
+
+    data = dnafrag.load(output_dir)["chr1"]
+    data = dnafrag.DNAFragMultiArray((data, data))
+
+    A = np.zeros((MAX_INTERVAL_LEN, 100), dtype=np.int32)
+
+    data.fill_array(0, A, zero=False)
+    assert A.sum() == 0
+
+    data.fill_array(0, A, zero=True)
+    assert A.sum() == 0
+
+    data.fill_array(1, A, zero=True)
+    assert A.sum() == 0
+
+    data.fill_array(100, A, zero=False)
+    assert A.sum() == 2 * 2
+    assert A[100, 50] == 2 * 2
+
+    data.fill_array(101, A, zero=False)
+    assert A.sum() == 4 * 2
+    assert A[100, 50] == 2 * 2
+    assert A[100, 49] == 2 * 2
+
+    data.fill_array(101, A, zero=True)
+    assert A.sum() == 2 * 2
+    assert A[100, 49] == 2 * 2
+
+    data.fill_array(101, A, zero=True)
+    assert A.sum() == 2 * 2
+    assert A[100, 49] == 2 * 2
+
+    A = np.zeros((MAX_INTERVAL_LEN, 91), dtype=np.int32)
+
+    data.fill_array(0, A, zero=False)
+    assert A.sum() == 0
+
+    data.fill_array(0, A, zero=True)
+    assert A.sum() == 0
+
+    data.fill_array(1, A, zero=True)
+    assert A.sum() == 0
+
+    data.fill_array(100, A, zero=False)
+    assert A.sum() == 2 * 2
+    assert A[100, 50] == 2 * 2
+
+    data.fill_array(101, A, zero=False)
+    assert A.sum() == 4 * 2
+    assert A[100, 50] == 2 * 2
+    assert A[100, 49] == 2 * 2
+
+    data.fill_array(101, A, zero=True)
+    assert A.sum() == 2 * 2
+    assert A[100, 49] == 2 * 2
+
+    data.fill_array(101, A, zero=True)
+    assert A.sum() == 2 * 2
+    assert A[100, 49] == 2 * 2
 
 
 def test_tiledb_test():

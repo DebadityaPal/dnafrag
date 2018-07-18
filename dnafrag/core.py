@@ -12,7 +12,9 @@ from scipy.sparse import coo_matrix, csc_matrix
 import tiledb
 
 from .array import DNAFragArray
+from .context import context as ctx
 from .constants import GENOME_DOMAIN_NAME, COUNTS_RANGE_NAME, INSERT_DOMAIN_NAME
+from .multiarray import DNAFragMultiArray
 
 
 DEFAULT_GENOME_TILE_EXTENT = 50000
@@ -94,7 +96,7 @@ def write_sparse_array(path, n, m, n_idxs, m_idxs, values):
     if m_idxs.min() < 0 or m_idxs.max() >= m:
         raise ValueError("column indexes must in in range [0, m - 1]")
 
-    ctx = tiledb.Ctx()
+    # ctx = tiledb.Ctx()
 
     n_tile_extent = min(DEFAULT_GENOME_TILE_EXTENT, n)
 
@@ -107,19 +109,23 @@ def write_sparse_array(path, n, m, n_idxs, m_idxs, values):
 
     v = tiledb.Attr(ctx, "v", compressor=("lz4", -1), dtype="uint8")
 
-    A = tiledb.SparseArray(
+    schema = tiledb.ArraySchema(
         ctx,
-        path,
         domain=domain,
         attrs=(v,),
         capacity=1000,
         cell_order="row-major",
         tile_order="row-major",
+        sparse=True,
     )
 
-    values = values.astype(np.uint8)
+    tiledb.SparseArray.create(path, schema)
 
-    A[n_idxs, m_idxs] = {"v": values}
+    with tiledb.SparseArray(ctx, path, mode="w") as A:
+        values = values.astype(np.uint8)
+        # A[n_idxs, m_idxs] = {"v": values}
+        A[n_idxs, m_idxs] = values
+        print((n_idxs, m_idxs, values))
 
 
 def load(directory):
@@ -130,6 +136,13 @@ def load(directory):
     return data
 
 
+def load_multi(directories):
+    """Wrapper for `DNAFragArray(directories)`.
+    directories should either be a list of DNAFragArrays, or a dictionary
+    of `{array_i_path: subsampling_rate_i}`."""
+    return DNAFragMultiArray(directories)
+
+
 def load_sparse_array(path):
-    ctx = tiledb.Ctx()
-    return tiledb.SparseArray.load(ctx, path)
+    # ctx = tiledb.Ctx()
+    return tiledb.SparseArray(ctx, path, mode="r")
