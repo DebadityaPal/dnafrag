@@ -11,6 +11,7 @@ from operator import itemgetter
 
 from .context import context as ctx
 from .constants import GENOME_DOMAIN_NAME, COUNTS_RANGE_NAME, INSERT_DOMAIN_NAME
+from .numpy_backend import NumpyBackend
 
 
 class DNAFragArray(object):
@@ -25,6 +26,8 @@ class DNAFragArray(object):
             self._arr = array._arr
             self.subsample_rate = array.subsample_rate
         elif isinstance(array, tiledb.SparseArray):
+            self._arr = array
+        elif isinstance(array, NumpyBackend):  # used for testing
             self._arr = array
         else:
             assert os.path.exists(array)
@@ -74,7 +77,7 @@ class DNAFragArray(object):
 
     def fill_array(self, start_pos, a, zero=True):
         assert a.shape[0] == self.shape[0]
-        assert start_pos + a.shape[1] < self.shape[1]
+        assert start_pos + a.shape[1] <= self.shape[1]
         assert start_pos >= 0
 
         if zero:

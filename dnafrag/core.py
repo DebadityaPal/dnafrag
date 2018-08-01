@@ -3,6 +3,7 @@ from itertools import groupby
 from operator import itemgetter
 import json
 import glob
+import os
 
 import numpy as np
 import pandas as ps
@@ -61,19 +62,9 @@ def write_fragbed(fragment_bed, output_dir, genome_file, max_fraglen, overwrite=
         col = np.array(col, dtype=np.int32)
         data = np.array(data, dtype=np.int32)
 
-        # NB: This vplot is shape `(max_fraglen, chrom_len)`
-        # The `coo -> csc -> coo` conversion is necessary
-        # to reduce (sum) duplicate entries
-        vplot = coo_matrix((data, (row, col)), dtype=np.int32)
-        vplot = vplot.tocsc(copy=False).tocoo(copy=False)
-
-        clipped_data = np.minimum(vplot.data, VPLOT_MAX_VALUE)
-
         # NB: We pass the *transpose* of the vplot
         # (so that the layout on disk is coordinate-major)
-        write_sparse_array(
-            chr_dir, chr_len, max_fraglen, vplot.col, vplot.row, clipped_data
-        )
+        write_sparse_array(chr_dir, chr_len, max_fraglen, col, row, data)
 
     with open(os.path.join(output_dir, "metadata.json"), "w") as fp:
         json.dump(
@@ -86,7 +77,7 @@ def write_fragbed(fragment_bed, output_dir, genome_file, max_fraglen, overwrite=
         )
 
 
-def write_sparse_array(path, n, m, n_idxs, m_idxs, values):
+def write_sparse_array(path, n, m, n_idxs, m_idxs, values, clip=True):
     if os.path.exists(path):
         raise FileExistsError("{} already exists".format(path))
 
@@ -95,6 +86,21 @@ def write_sparse_array(path, n, m, n_idxs, m_idxs, values):
 
     if m_idxs.min() < 0 or m_idxs.max() >= m:
         raise ValueError("column indexes must in in range [0, m - 1]")
+
+    sparse = coo_matrix((values, (n_idxs, m_idxs)), dtype=np.int32)
+    sparse = sparse.tocsc(copy=False).tocoo(copy=False)
+
+    n_idxs = sparse.row
+    m_idxs = sparse.col
+    values = sparse.data
+
+    if clip:
+        values = np.minimum(values, VPLOT_MAX_VALUE)
+
+    if values.min() < 0 or values.max() > VPLOT_MAX_VALUE:
+        raise ValueError(
+            "vplot values must be in range [0, {}]".format(VPLOT_MAX_VALUE)
+        )
 
     # ctx = tiledb.Ctx()
 
@@ -125,7 +131,6 @@ def write_sparse_array(path, n, m, n_idxs, m_idxs, values):
         values = values.astype(np.uint8)
         # A[n_idxs, m_idxs] = {"v": values}
         A[n_idxs, m_idxs] = values
-        print((n_idxs, m_idxs, values))
 
 
 def load(directory):
@@ -137,7 +142,7 @@ def load(directory):
 
 
 def load_multi(directories):
-    """Wrapper for `DNAFragArray(directories)`.
+    """Wrapper for `DNAFragMultiArray(directories)`.
     directories should either be a list of DNAFragArrays, or a dictionary
     of `{array_i_path: subsampling_rate_i}`."""
     return DNAFragMultiArray(directories)
