@@ -133,28 +133,31 @@ def write_sparse_array(path, n, m, n_idxs, m_idxs, values, clip=True):
         A[n_idxs, m_idxs] = values
 
 
-def load(directory, subsample_rate=None):
+def load(directory, subsample_rate=None, probe=False):
     assert os.path.isdir(directory)
-    chrom_dirs = glob.glob(directory + "/*")
+    chrom_dirs = glob.glob(os.path.join(directory, "*"))
     chrom_dirs = filter(os.path.isdir, chrom_dirs)
-    data = {os.path.basename(c): DNAFragArray(c, subsample_rate=subsample_rate) for c in chrom_dirs}
+    data = {
+        os.path.basename(c): DNAFragArray(c, subsample_rate=subsample_rate, probe=probe)
+        for c in chrom_dirs
+    }
     return data
 
 
-def load_multi(directories):
+def load_multi(directories, probe=False):
     """directories: dictionary of `{array_i_path: subsampling_rate_i}`."""
 
     if len(directories.keys()) == 1:
-        path, rate = next(directories.items())
-        return load(path, subsample_rate=rate)
+        path, rate = next(iter(directories.items()))
+        return load(path, subsample_rate=rate, probe=probe)
 
-    chrom_dirs = glob.glob(next(iter(directories)) + "/*")
-    chrom_names = map(os.path.basename(filter(os.path.isdir, chrom_dirs))
+    chrom_dirs = glob.glob(os.path.join(next(iter(directories)), "*"))
+    chrom_names = map(os.path.basename, filter(os.path.isdir, chrom_dirs))
 
     data = {}
     for chrom_name in chrom_names:
         chrom_arrs = {os.path.join(k, chrom_name): v for k, v in directories.items()}
-        data[chrom_name] = DNAFragMultiArray(chrom_arrs)
+        data[chrom_name] = DNAFragMultiArray(chrom_arrs, probe=probe)
 
     return data
 

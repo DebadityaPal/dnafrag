@@ -169,7 +169,7 @@ def test_exact_coords_array_access(tmpdir):
     output_dir = os.path.join(tmpdir, "output")
     dnafrag.core.write_fragbed(fragbed, output_dir, chrszs, MAX_INTERVAL_LEN)
 
-    data1 = dnafrag.load(output_dir)["chr1"]
+    data1 = dnafrag.load(output_dir, probe=True)["chr1"]
     data = dnafrag.DNAFragMultiArray((data1,))
 
     A = np.zeros((MAX_INTERVAL_LEN, 100), dtype=np.int32)
@@ -228,7 +228,7 @@ def test_exact_coords_array_access(tmpdir):
     assert A.sum() == 2
     assert A[100, 49] == 2
 
-    data = dnafrag.load(output_dir)["chr1"]
+    data = dnafrag.load(output_dir, probe=True)["chr1"]
     data = dnafrag.DNAFragMultiArray((data, data))
 
     A = np.zeros((MAX_INTERVAL_LEN, 100), dtype=np.int32)

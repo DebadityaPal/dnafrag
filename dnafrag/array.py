@@ -16,7 +16,7 @@ from .numpy_backend import NumpyBackend
 
 class DNAFragArray(object):
 
-    def __init__(self, array, mode="r", subsample_rate=None):
+    def __init__(self, array, mode="r", subsample_rate=None, probe=False):
         """subsample_rate is the probability of *keeping* an entry."""
         if array is None:
             # empty array -- this is used by DNAFragMultiArray
@@ -40,14 +40,14 @@ class DNAFragArray(object):
             if nonempty is None:
                 raise ValueError("Array is empty")
 
-            else:
+            if probe:
                 ((si, sj), (sti, stj)) = nonempty
                 if n >= m:
-                    _ = self._arr[si, :]
-                    _ = self._arr[sti, :]
+                    _ = self._arr.query(attrs=[COUNTS_RANGE_NAME])[si, :]
+                    _ = self._arr.query(attrs=[COUNTS_RANGE_NAME])[sti, :]
                 else:
-                    _ = self._arr[:, sj]
-                    _ = self._arr[:, stj]
+                    _ = self._arr.query(attrs=[COUNTS_RANGE_NAME])[:, sj]
+                    _ = self._arr.query(attrs=[COUNTS_RANGE_NAME])[:, stj]
 
         if subsample_rate is not None:
             assert subsample_rate > 0. and subsample_rate <= 1.
@@ -55,7 +55,8 @@ class DNAFragArray(object):
 
     def __getitem__(self, key):
         r, c = key
-        d = self._arr[c, r]
+        # d = self._arr[c, r]
+        d = self._arr.query(attrs=[COUNTS_RANGE_NAME], coords=True)[c, r]
         if self.subsample_rate is not None:
             v = d[COUNTS_RANGE_NAME]
             v = self.subsample(v)
@@ -67,8 +68,9 @@ class DNAFragArray(object):
 
     def subsample(self, v):
         assert self.subsample_rate > 0. and self.subsample_rate <= 1.
+        v.setflags(write=1)
         dropout_rate = 1.0 - self.subsample_rate
-        for uval in v.unique():
+        for uval in np.unique(v):
             idxs = v == uval
             n_idxs = idxs.sum()
             d = np.random.binomial(uval, dropout_rate, n_idxs)
