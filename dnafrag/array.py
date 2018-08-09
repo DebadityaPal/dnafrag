@@ -40,14 +40,8 @@ class DNAFragArray(object):
             if nonempty is None:
                 raise ValueError("Array is empty")
 
-            if probe:
-                ((si, sj), (sti, stj)) = nonempty
-                if n >= m:
-                    _ = self._arr.query(attrs=[COUNTS_RANGE_NAME])[si, :]
-                    _ = self._arr.query(attrs=[COUNTS_RANGE_NAME])[sti, :]
-                else:
-                    _ = self._arr.query(attrs=[COUNTS_RANGE_NAME])[:, sj]
-                    _ = self._arr.query(attrs=[COUNTS_RANGE_NAME])[:, stj]
+            # NB: this seems to be necessary to prevent the array appearing empty
+            _ = self._arr.query(attrs=[COUNTS_RANGE_NAME], coords=True)[:, :]
 
         if subsample_rate is not None:
             assert subsample_rate > 0. and subsample_rate <= 1.
