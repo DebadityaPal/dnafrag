@@ -16,13 +16,17 @@ from .numpy_backend import NumpyBackend
 
 class DNAFragArray(object):
 
-    def __init__(self, array, mode="r", subsample_rate=None, probe=False):
+    def __init__(self, array, mode="r", subsample_rate=None):
         """subsample_rate is the probability of *keeping* an entry."""
         if array is None:
             # empty array -- this is used by DNAFragMultiArray
             self._arr = None
         elif isinstance(array, DNAFragArray):
             # copy construcor -- this is used by DNAFragMultiArray
+
+            # TODO: this is "dangerous" shallow copy of a filehandleself.
+            # We should probably open a new handle on the path, in case the
+            # "other" array is destroyed and its file handle closes.
             self._arr = array._arr
             self.subsample_rate = array.subsample_rate
         elif isinstance(array, tiledb.SparseArray):
@@ -40,11 +44,12 @@ class DNAFragArray(object):
             if nonempty is None:
                 raise ValueError("Array is empty")
 
+            # NB: NB: this is not necessary with tiledb >= v0.2.1
             # NB: this seems to be necessary to prevent the array appearing empty
-            _ = self._arr.query(attrs=[COUNTS_RANGE_NAME], coords=True)[:, :]
+            # _ = self._arr.query(attrs=[COUNTS_RANGE_NAME], coords=True)[:, :]
 
         if subsample_rate is not None:
-            assert subsample_rate > 0. and subsample_rate <= 1.
+            assert subsample_rate >= 0. and subsample_rate <= 1.
         self.subsample_rate = subsample_rate
 
     def __getitem__(self, key):
@@ -60,8 +65,15 @@ class DNAFragArray(object):
     def __setitem__(self, key, item):
         raise NotImplemented("DNAFragArray is read-only")
 
+    def close(self):
+        self._arr.close()
+
+    # TODO: this can't happen until the copy constructor performs a deep copy (see above)
+    # def __del__(self):
+    #     self._arr.close()
+
     def subsample(self, v):
-        assert self.subsample_rate > 0. and self.subsample_rate <= 1.
+        assert self.subsample_rate >= 0. and self.subsample_rate <= 1.
         v.setflags(write=1)
         dropout_rate = 1.0 - self.subsample_rate
         for uval in np.unique(v):

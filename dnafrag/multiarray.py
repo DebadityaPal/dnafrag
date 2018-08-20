@@ -78,6 +78,10 @@ class DNAFragMultiArray(DNAFragArray):
 
         return ret
 
+    def close(self):
+        for arr in self._arrays:
+            arr.close()
+
     @property
     def shape(self):
         return self._arrays[0].shape

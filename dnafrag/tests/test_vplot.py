@@ -148,7 +148,7 @@ def test_exact_coords_array_access(tmpdir):
     output_dir = os.path.join(tmpdir, "output")
     dnafrag.core.write_fragbed(fragbed, output_dir, chrszs, MAX_INTERVAL_LEN)
 
-    data = dnafrag.load(output_dir, probe=True)["chr1"]
+    data = dnafrag.load(output_dir)["chr1"]
 
     A = np.zeros((MAX_INTERVAL_LEN, 100), dtype=np.int32)
 

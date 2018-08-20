@@ -25,4 +25,10 @@ def test_vplot_end_to_end(tmpdir):
     assert "chr1" in data.keys()
     data = data["chr1"]
 
+    assert data[0, 0]["v"].shape[0] == 0
+    assert data[:1000, :1000]["v"].shape[0] == 0
+
     assert data[:, :]["v"].sum() == 100000
+
+    assert data[0, 0]["v"].shape[0] == 0
+    assert data[:1000, :1000]["v"].shape[0] == 0
