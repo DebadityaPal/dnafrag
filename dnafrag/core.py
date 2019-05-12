@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import os.path
 from itertools import groupby
 from operator import itemgetter
@@ -107,16 +111,27 @@ def write_sparse_array(path, n, m, n_idxs, m_idxs, values, clip=True):
     n_tile_extent = min(DEFAULT_GENOME_TILE_EXTENT, n)
 
     d1 = tiledb.Dim(
-        ctx, GENOME_DOMAIN_NAME, domain=(0, n - 1), tile=n_tile_extent, dtype="uint32"
+        GENOME_DOMAIN_NAME,
+        domain=(0, n - 1),
+        tile=n_tile_extent,
+        dtype="uint32",
+        ctx=ctx,
     )
-    d2 = tiledb.Dim(ctx, INSERT_DOMAIN_NAME, domain=(0, m - 1), tile=m, dtype="uint32")
+    d2 = tiledb.Dim(
+        INSERT_DOMAIN_NAME, domain=(0, m - 1), tile=m, dtype="uint32", ctx=ctx
+    )
 
-    domain = tiledb.Domain(ctx, d1, d2)
+    domain = tiledb.Domain(d1, d2, ctx=ctx)
 
-    v = tiledb.Attr(ctx, "v", compressor=("lz4", -1), dtype="uint8")
+    v = tiledb.Attr(
+        "v",
+        filters=tiledb.FilterList([tiledb.LZ4Filter(level=-1)]),
+        dtype="uint8",
+        ctx=ctx,
+    )
 
     schema = tiledb.ArraySchema(
-        ctx,
+        ctx=ctx,
         domain=domain,
         attrs=(v,),
         capacity=1000,
@@ -127,7 +142,7 @@ def write_sparse_array(path, n, m, n_idxs, m_idxs, values, clip=True):
 
     tiledb.SparseArray.create(path, schema)
 
-    with tiledb.SparseArray(ctx, path, mode="w") as A:
+    with tiledb.SparseArray(path, mode="w", ctx=ctx) as A:
         values = values.astype(np.uint8)
         # A[n_idxs, m_idxs] = {"v": values}
         A[n_idxs, m_idxs] = values
@@ -172,4 +187,4 @@ def load_multi(directories, chroms=None):
 
 def load_sparse_array(path):
     # ctx = tiledb.Ctx()
-    return tiledb.SparseArray(ctx, path, mode="r")
+    return tiledb.SparseArray(path, mode="r", ctx=ctx)

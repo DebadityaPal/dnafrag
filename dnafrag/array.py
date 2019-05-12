@@ -35,7 +35,7 @@ class DNAFragArray(object):
             self._arr = array
         else:
             assert os.path.exists(array)
-            self._arr = tiledb.SparseArray(ctx, array, mode="r")
+            self._arr = tiledb.SparseArray(array, ctx=ctx, mode="r")
 
         if self._arr is not None:
             (n, m) = self._arr.shape

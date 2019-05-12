@@ -222,21 +222,28 @@ def test_tiledb_test():
 
     n_tile_extent = min(100, n)
 
-    d1 = tiledb.Dim(ctx, "ndom", domain=(0, n - 1), tile=n_tile_extent, dtype="uint32")
-    d2 = tiledb.Dim(ctx, "mdom", domain=(0, m - 1), tile=m, dtype="uint32")
+    d1 = tiledb.Dim(
+        "ndom", domain=(0, n - 1), tile=n_tile_extent, dtype="uint32", ctx=ctx
+    )
+    d2 = tiledb.Dim("mdom", domain=(0, m - 1), tile=m, dtype="uint32", ctx=ctx)
 
-    domain = tiledb.Domain(ctx, d1, d2)
+    domain = tiledb.Domain(d1, d2, ctx=ctx)
 
-    v = tiledb.Attr(ctx, "v", compressor=("lz4", -1), dtype="uint8")
+    v = tiledb.Attr(
+        "v",
+        filters=tiledb.FilterList([tiledb.LZ4Filter(level=-1)]),
+        dtype="uint8",
+        ctx=ctx,
+    )
 
     schema = tiledb.ArraySchema(
-        ctx,
         domain=domain,
         attrs=(v,),
         capacity=10000,
         cell_order="row-major",
         tile_order="row-major",
         sparse=True,
+        ctx=ctx,
     )
 
     with tempfile.TemporaryDirectory() as tdir:
@@ -245,12 +252,12 @@ def test_tiledb_test():
 
         tiledb.SparseArray.create(path, schema)
 
-        with tiledb.SparseArray(ctx, path, mode="w") as A:
+        with tiledb.SparseArray(path, mode="w", ctx=ctx) as A:
             A[n_idxs, m_idxs] = values
 
         ctx2 = tiledb.Ctx()
 
-        s = tiledb.SparseArray(ctx2, path, mode="r")
+        s = tiledb.SparseArray(path, mode="r", ctx=ctx2)
         vs1 = s[1:10, 1:50]
 
         _ = s[:, :]
