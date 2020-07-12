@@ -43,9 +43,8 @@ class DNAFragMultiArray(DNAFragArray):
 
         for arr in self._arrays:
             d = arr[key]
-            c = d["coords"]
-            ai.append(c[GENOME_DOMAIN_NAME])
-            aj.append(c[INSERT_DOMAIN_NAME])
+            ai.append(d[GENOME_DOMAIN_NAME])
+            aj.append(d[INSERT_DOMAIN_NAME])
             av.append(d[COUNTS_RANGE_NAME])
 
         ai = np.concatenate(ai)
@@ -64,10 +63,8 @@ class DNAFragMultiArray(DNAFragArray):
 
         ret = {}
 
-        ret["coords"] = {
-            GENOME_DOMAIN_NAME: a.row + row_offset,
-            INSERT_DOMAIN_NAME: a.col,
-        }
+        ret[GENOME_DOMAIN_NAME] = a.row + row_offset,
+        ret[INSERT_DOMAIN_NAME] = a.col
 
         if self.subsample_rate is not None:
             v = self.subsample(a.data)

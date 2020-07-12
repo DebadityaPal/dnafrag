@@ -92,9 +92,8 @@ class DNAFragArray(object):
             a[:, :] = 0
 
         d = self[:, start_pos : start_pos + a.shape[1]]
-        c = d["coords"]
-        i = c[INSERT_DOMAIN_NAME]  # transpose of on-disk array
-        j = c[GENOME_DOMAIN_NAME] - start_pos  # coords are offset from start
+        i = d[INSERT_DOMAIN_NAME]  # transpose of on-disk array
+        j = np.array(d[GENOME_DOMAIN_NAME]) - start_pos  # coords are offset from start
         v = d[COUNTS_RANGE_NAME]
         a[i, j] = v
 
@@ -105,9 +104,8 @@ class DNAFragArray(object):
         assert start_pos >= 0
 
         d = self[:, start_pos : start_pos + a.shape[1]]
-        c = d["coords"]
-        i = c[INSERT_DOMAIN_NAME]  # transpose of on-disk array
-        j = c[GENOME_DOMAIN_NAME] - start_pos  # coords are offset from start
+        i = d[INSERT_DOMAIN_NAME]  # transpose of on-disk array
+        j = np.array(d[GENOME_DOMAIN_NAME]) - start_pos  # coords are offset from start
         a[i, j] += d[COUNTS_RANGE_NAME]
 
     @property
