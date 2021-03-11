@@ -13,10 +13,11 @@ def main():
     parser.add_argument("fragbed", type=os.path.abspath)
     parser.add_argument("outdir", type=os.path.abspath)
     parser.add_argument("genome", type=os.path.abspath)
+    parser.add_argument("backend")
     parser.add_argument("--max-fraglen", type=int, default=400)
     args = parser.parse_args()
 
-    write_fragbed(args.fragbed, args.outdir, args.genome, args.max_fraglen)
+    write_fragbed(args.fragbed, args.outdir, args.genome, args.max_fraglen, args.backend)
 
 
 if __name__ == "__main__":
